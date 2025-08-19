@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guess the Photo Game</title>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#000000">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    #grid {
+      display: grid;
+      margin: 20px auto;
+      position: relative;
+      max-width: 95vw;
+      max-height: 70vh;
+      background-size: cover;
+      background-position: center;
+      aspect-ratio: 1 / 1; /* square fallback */
+      border: 2px solid #333;
+    }
+    .cell {
+      background: black;
+      cursor: pointer;
+      touch-action: manipulation; /* helps on Safari mobile */
+    }
+    input, button {
+      font-size: 1rem;
+      margin: 5px;
+      padding: 5px;
+    }
+    button {
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h2>Guess the Photo</h2>
+
+  <input type="file" id="fileInput" accept="image/*"><br><br>
+  <label>Rows: <input type="number" id="rows" value="4" min="1" style="width:60px;"></label>
+  <label>Cols: <input type="number" id="cols" value="4" min="1" style="width:60px;"></label>
+  <button onclick="generateGrid()">Cover Photo</button>
+
+  <div id="grid"></div>
+
+  <script>
+    let uploadedURL = null;
+    let img = new Image();
+
+    document.getElementById("fileInput").addEventListener("change", function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        uploadedURL = URL.createObjectURL(file);
+        img.src = uploadedURL;
+      }
+    });
+
+    function generateGrid() {
+      if (!uploadedURL) {
+        alert("Please upload a photo first!");
+        return;
+      }
+
+      const rows = parseInt(document.getElementById("rows").value);
+      const cols = parseInt(document.getElementById("cols").value);
+
+      const grid = document.getElementById("grid");
+      grid.innerHTML = "";
+
+      grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+      grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+      grid.style.backgroundImage = `url(${uploadedURL})`;
+
+      for (let i = 0; i < rows * cols; i++) {
+        const cell = document.createElement("div");
+        cell.classList.add("cell");
+
+        // Reveal on click or touch
+        cell.addEventListener("click", () => cell.style.background = "transparent");
+        cell.addEventListener("touchstart", () => cell.style.background = "transparent");
+
+        grid.appendChild(cell);
+      }
+    }
+
+    // Register service worker for PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(() => console.log("Service Worker Registered"))
+        .catch(err => console.error("SW registration failed:", err));
+    }
+  </script>
+</body>
+</html>
