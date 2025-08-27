@@ -29,16 +29,19 @@
     }
     .cell {
       background: black;
-      cursor: pointer;
       touch-action: manipulation;
     }
     input, button {
       font-size: 1rem;
       margin: 5px;
-      padding: 5px;
+      padding: 8px 12px;
     }
     button {
       cursor: pointer;
+      border-radius: 6px;
+      border: none;
+      background: #444;
+      color: white;
     }
     #controls {
       margin-top: 10px;
@@ -46,6 +49,12 @@
     #level {
       font-weight: bold;
       font-size: 1.2rem;
+    }
+    #nav {
+      margin-top: 15px;
+    }
+    #nav button {
+      margin: 5px;
     }
   </style>
 </head>
@@ -56,31 +65,31 @@
   <label>Rows: <input type="number" id="rows" value="4" min="1" style="width:60px;"></label>
   <label>Cols: <input type="number" id="cols" value="4" min="1" style="width:60px;"></label>
   <button onclick="startGame()">Start Game</button>
+  <button onclick="revealRandom()">Reveal Random Box</button>
 
   <div id="controls">
-    <span id="level">Level: 1</span>
+    <span id="level">Level: 0</span>
   </div>
 
   <div id="grid"></div>
 
-  <script>
-    let images = [];        // store uploaded image URLs
-    let currentLevel = 0;   // track level number
+  <div id="nav">
+    <button onclick="prevLevel()">⬅️ Previous</button>
+    <button onclick="nextLevel()">Next ➡️</button>
+  </div>
 
+  <script>
+    let images = [];          // uploaded image URLs
+    let currentLevel = 0;     // track current level
+    let hiddenCells = [];     // keep track of covered cells
+
+    // Load up to 20 photos
     document.getElementById("fileInput").addEventListener("change", function(e) {
       const files = Array.from(e.target.files).slice(0, 20); // limit to 20
       images = files.map(file => URL.createObjectURL(file));
-      shuffle(images); // randomize the pool
     });
 
-    // Shuffle helper function
-    function shuffle(arr) {
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-    }
-
+    // Start game at level 1
     function startGame() {
       if (images.length === 0) {
         alert("Please upload 1–20 photos first!");
@@ -90,10 +99,10 @@
       loadLevel();
     }
 
+    // Load a given level
     function loadLevel() {
-      if (currentLevel >= images.length) {
-        alert("🎉 Game finished! No more levels.");
-        return;
+      if (currentLevel < 0 || currentLevel >= images.length) {
+        return; // no level
       }
 
       const rows = parseInt(document.getElementById("rows").value);
@@ -105,23 +114,49 @@
       grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
       grid.style.backgroundImage = `url(${images[currentLevel]})`;
 
+      hiddenCells = [];
+
       // Add cover cells
       for (let i = 0; i < rows * cols; i++) {
         const cell = document.createElement("div");
         cell.classList.add("cell");
-        cell.addEventListener("click", () => cell.style.background = "transparent");
-        cell.addEventListener("touchstart", () => cell.style.background = "transparent");
         grid.appendChild(cell);
+        hiddenCells.push(cell);
       }
 
       document.getElementById("level").innerText = "Level: " + (currentLevel + 1);
     }
 
-    // Move to next level with Right Arrow key
-    window.addEventListener("keydown", (e) => {
-      if (e.key === "ArrowRight") {
+    // Reveal one random hidden cell
+    function revealRandom() {
+      if (hiddenCells.length === 0) return;
+      const randomIndex = Math.floor(Math.random() * hiddenCells.length);
+      const cell = hiddenCells[randomIndex];
+      cell.style.background = "transparent";
+      hiddenCells.splice(randomIndex, 1);
+    }
+
+    // Next/Previous level functions
+    function nextLevel() {
+      if (currentLevel < images.length - 1) {
         currentLevel++;
         loadLevel();
+      }
+    }
+
+    function prevLevel() {
+      if (currentLevel > 0) {
+        currentLevel--;
+        loadLevel();
+      }
+    }
+
+    // Navigation with keyboard arrows
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight") {
+        nextLevel();
+      } else if (e.key === "ArrowLeft") {
+        prevLevel();
       }
     });
 
