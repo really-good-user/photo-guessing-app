@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Guess the Photo Game</title>
 
-  <!-- PWA Manifest -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#000000">
 
@@ -25,13 +24,13 @@
       max-height: 70vh;
       background-size: cover;
       background-position: center;
-      aspect-ratio: 1 / 1; /* square fallback */
+      aspect-ratio: 1 / 1;
       border: 2px solid #333;
     }
     .cell {
       background: black;
       cursor: pointer;
-      touch-action: manipulation; /* helps on Safari mobile */
+      touch-action: manipulation;
     }
     input, button {
       font-size: 1rem;
@@ -41,57 +40,90 @@
     button {
       cursor: pointer;
     }
+    #controls {
+      margin-top: 10px;
+    }
+    #level {
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
   </style>
 </head>
 <body>
   <h2>Guess the Photo</h2>
 
-  <input type="file" id="fileInput" accept="image/*"><br><br>
+  <input type="file" id="fileInput" accept="image/*" multiple><br><br>
   <label>Rows: <input type="number" id="rows" value="4" min="1" style="width:60px;"></label>
   <label>Cols: <input type="number" id="cols" value="4" min="1" style="width:60px;"></label>
-  <button onclick="generateGrid()">Cover Photo</button>
+  <button onclick="startGame()">Start Game</button>
+
+  <div id="controls">
+    <span id="level">Level: 1</span>
+  </div>
 
   <div id="grid"></div>
 
   <script>
-    let uploadedURL = null;
-    let img = new Image();
+    let images = [];        // store uploaded image URLs
+    let currentLevel = 0;   // track level number
 
     document.getElementById("fileInput").addEventListener("change", function(e) {
-      const file = e.target.files[0];
-      if (file) {
-        uploadedURL = URL.createObjectURL(file);
-        img.src = uploadedURL;
-      }
+      const files = Array.from(e.target.files).slice(0, 20); // limit to 20
+      images = files.map(file => URL.createObjectURL(file));
+      shuffle(images); // randomize the pool
     });
 
-    function generateGrid() {
-      if (!uploadedURL) {
-        alert("Please upload a photo first!");
+    // Shuffle helper function
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+    }
+
+    function startGame() {
+      if (images.length === 0) {
+        alert("Please upload 1–20 photos first!");
+        return;
+      }
+      currentLevel = 0;
+      loadLevel();
+    }
+
+    function loadLevel() {
+      if (currentLevel >= images.length) {
+        alert("🎉 Game finished! No more levels.");
         return;
       }
 
       const rows = parseInt(document.getElementById("rows").value);
       const cols = parseInt(document.getElementById("cols").value);
-
       const grid = document.getElementById("grid");
-      grid.innerHTML = "";
 
+      grid.innerHTML = "";
       grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
       grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-      grid.style.backgroundImage = `url(${uploadedURL})`;
+      grid.style.backgroundImage = `url(${images[currentLevel]})`;
 
+      // Add cover cells
       for (let i = 0; i < rows * cols; i++) {
         const cell = document.createElement("div");
         cell.classList.add("cell");
-
-        // Reveal on click or touch
         cell.addEventListener("click", () => cell.style.background = "transparent");
         cell.addEventListener("touchstart", () => cell.style.background = "transparent");
-
         grid.appendChild(cell);
       }
+
+      document.getElementById("level").innerText = "Level: " + (currentLevel + 1);
     }
+
+    // Move to next level with Right Arrow key
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight") {
+        currentLevel++;
+        loadLevel();
+      }
+    });
 
     // Register service worker for PWA
     if ('serviceWorker' in navigator) {
